@@ -1,3 +1,7 @@
+const { BN } = polkadotUtil;
+const { encodeAddress } = polkadotUtilCrypto;
+const { WsProvider, ApiPromise } = polkadotApi;
+
 // Global Variables
 var global = {
 	balances: {},
@@ -19,9 +23,9 @@ function toUnit(balance, decimals) {
 async function connect() {
 	let endpoint = document.getElementById('endpoint').value;
 	if (!window.substrate || global.endpoint != endpoint) {
-		const provider = new api.WsProvider(endpoint);
+		const provider = new WsProvider(endpoint);
 		document.getElementById('output').innerHTML = 'Connecting to Endpoint...';
-		window.substrate = await api.ApiPromise.create({ provider });
+		window.substrate = await ApiPromise.create({ provider });
 		global.endpoint = endpoint;
 		global.chainDecimals = substrate.registry.chainDecimals;
 		global.chainToken = substrate.registry.chainToken;
@@ -86,11 +90,11 @@ async function takeSnapshot() {
 			all_accounts = await substrate.query.system.account.entries();
 		} else {
 			document.getElementById('output').innerHTML = `Querying ${global.pageSize} users... please wait.`;
-			all_accounts = await substrate.query.system.account.entriesPaged({ pageSize: global.pageSize, startKey: global.lastKey });
+			all_accounts = await substrate.query.system.account.entriesPaged({ args: [], pageSize: global.pageSize, startKey: global.lastKey });
 		}
 
 		for (account of all_accounts) {
-			let address = util_crypto.encodeAddress(account[0].slice(-32));
+			let address = encodeAddress(account[0].slice(-32));
 			let free = account[1].data.free;
 			let reserved = account[1].data.reserved;
 			global.balances[address] = {
