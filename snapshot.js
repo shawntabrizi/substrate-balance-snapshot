@@ -4,12 +4,14 @@ const { WsProvider, ApiPromise } = polkadotApi;
 
 // Global Variables
 var global = {
+	endpoint: "ws://127.0.0.1:9910",
 	balances: {},
-	blocknumber: 0,
+	blockNumber: 0,
 	pageSize: 100,
 	chainDecimals: 18,
 	chainToken: "UNIT",
 	lastKey: "",
+	lastCount: 0,
 };
 
 // Convert a big number balance to expected float with correct units.
@@ -21,23 +23,22 @@ function toUnit(balance, decimals) {
 
 // Connect to Substrate endpoint
 async function connect() {
-	let endpoint = document.getElementById('endpoint').value;
-	if (!window.substrate || global.endpoint != endpoint) {
-		const provider = new WsProvider(endpoint);
-		document.getElementById('output').innerHTML = 'Connecting to Endpoint...';
-		window.substrate = await ApiPromise.create({ provider });
-		global.endpoint = endpoint;
-		global.chainDecimals = substrate.registry.chainDecimals;
-		global.chainToken = substrate.registry.chainToken;
-		document.getElementById('output').innerHTML = 'Connected';
-	}
+	const provider = new WsProvider(global.endpoint);
+	document.getElementById('output').innerHTML = 'Connecting to Endpoint...';
+	let api = await ApiPromise.create({ provider });
+	let blockHash = await api.rpc.chain.getBlockHash(global.blockNumber);
+	document.getElementById('output').innerHTML = `Block Number: ${global.blockNumber} Block Hash: ${blockHash}\n`;
+	window.substrate = await api.at(blockHash);
+	global.chainDecimals = substrate.registry.chainDecimals;
+	global.chainToken = substrate.registry.chainToken;
+	document.getElementById('output').innerHTML = 'Connected\n';
 }
 
 // Create a table with the index information
 function createTable() {
 	document.getElementById('output').innerHTML = "Creating Table...";
 
-	let keys = ["AccountId", "Free", "Reserved", "Total"];
+	let keys = ["#", "AccountId", "Free", "Reserved", "Total"];
 
 	let table = document.getElementById('table');
 
@@ -77,11 +78,22 @@ function createTable() {
 // Main function
 async function takeSnapshot() {
 	try {
-		await connect();
-
 		// Get address from input
-		global.blocknumber = parseInt(document.getElementById('blocknumber').value);
+		const newBlockNumber = parseInt(document.getElementById('blockNumber').value);
+		const newEndpoint = document.getElementById('endpoint').value;
+
+		// Reset the data when reading a new block or endpoint.
+		if (global.blockNumber != newBlockNumber || global.endpoint != newEndpoint) {
+			global.balances = {};
+			global.lastKey = "";
+			global.lastCount = 0;
+		}
+
+		global.blockNumber = newBlockNumber;
+		global.endpoint = newEndpoint;
 		global.pageSize = parseInt(document.getElementById("pageSize").value);
+
+		await connect();
 
 		let all_accounts = [];
 		if (global.pageSize == 0) {
@@ -93,11 +105,13 @@ async function takeSnapshot() {
 			all_accounts = await substrate.query.system.account.entriesPaged({ args: [], pageSize: global.pageSize, startKey: global.lastKey });
 		}
 
-		for (account of all_accounts) {
+		for (const account of all_accounts) {
 			let address = encodeAddress(account[0].slice(-32));
 			let free = account[1].data.free;
 			let reserved = account[1].data.reserved;
+			global.lastCount += 1;
 			global.balances[address] = {
+				"#": global.lastCount,
 				"AccountId": address,
 				"Free": toUnit(free, global.chainDecimals),
 				"Reserved": toUnit(reserved, global.chainDecimals),
