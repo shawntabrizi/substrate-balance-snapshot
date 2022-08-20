@@ -23,14 +23,31 @@ function toUnit(balance, decimals) {
 
 // Connect to Substrate endpoint
 async function connect() {
-	const provider = new WsProvider(global.endpoint);
+	// Get address from input
+	const newBlockNumber = parseInt(document.getElementById('blockNumber').value);
+	const newEndpoint = document.getElementById('endpoint').value;
+
+	// Reset the data when reading a new block or endpoint.
+	if (global.blockNumber == newBlockNumber && global.endpoint == newEndpoint && window.substrate) {
+		return;
+	}
+
+	const provider = new WsProvider(newEndpoint);
 	document.getElementById('output').innerHTML = 'Connecting to Endpoint...';
 	let api = await ApiPromise.create({ provider });
-	let blockHash = await api.rpc.chain.getBlockHash(global.blockNumber);
-	document.getElementById('output').innerHTML = `Block Number: ${global.blockNumber} Block Hash: ${blockHash}\n`;
+	let blockHash = await api.rpc.chain.getBlockHash(newBlockNumber);
+	document.getElementById('output').innerHTML = `Block Number: ${newBlockNumber} Block Hash: ${blockHash}\n`;
 	window.substrate = await api.at(blockHash);
+
+	global.endpoint = newEndpoint;
+	global.balances = {};
+	global.blockNumber = newBlockNumber;
+	global.pageSize = parseInt(document.getElementById("pageSize").value);
 	global.chainDecimals = substrate.registry.chainDecimals;
 	global.chainToken = substrate.registry.chainToken;
+	global.lastKey = "";
+	global.lastCount = 0;
+
 	document.getElementById('output').innerHTML = 'Connected\n';
 }
 
@@ -75,24 +92,15 @@ function createTable() {
 	document.getElementById('output').innerHTML = "Done.";
 }
 
+const topButton = document.getElementById("topButton");
+const bottomButton = document.getElementById("bottomButton");
+
 // Main function
 async function takeSnapshot() {
+	topButton.disabled = true;
+	bottomButton.disabled = true;
+
 	try {
-		// Get address from input
-		const newBlockNumber = parseInt(document.getElementById('blockNumber').value);
-		const newEndpoint = document.getElementById('endpoint').value;
-
-		// Reset the data when reading a new block or endpoint.
-		if (global.blockNumber != newBlockNumber || global.endpoint != newEndpoint) {
-			global.balances = {};
-			global.lastKey = "";
-			global.lastCount = 0;
-		}
-
-		global.blockNumber = newBlockNumber;
-		global.endpoint = newEndpoint;
-		global.pageSize = parseInt(document.getElementById("pageSize").value);
-
 		await connect();
 
 		let all_accounts = [];
@@ -124,4 +132,7 @@ async function takeSnapshot() {
 	} catch (error) {
 		document.getElementById('output').innerHTML = error;
 	}
+
+	topButton.disabled = false;
+	bottomButton.disabled = false;
 }

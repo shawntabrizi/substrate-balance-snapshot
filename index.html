@@ -33,7 +33,8 @@
 				<span class="input-group-text">Page Size</span>
 				<input type="text" class="form-control" id="pageSize" value="100" />
 				<div class="input-group-append">
-					<a class="btn btn-lg btn-primary" onclick="takeSnapshot();" role="button">Take Snapshot &raquo;</a>
+					<button class="btn btn-lg btn-primary" onclick="takeSnapshot();" role="button" id="topButton">Take
+						Snapshot &raquo;</a>
 				</div>
 			</div>
 			<div class="row">
@@ -51,7 +52,8 @@
 		</div>
 		<div id="table" class="table table-striped table-sm"></div>
 		<div class="input-group">
-			<a class="btn btn-lg btn-primary" onclick="takeSnapshot();" role="button">More &raquo;</a>
+			<button class="btn btn-lg btn-primary" onclick="takeSnapshot();" role="button" id="bottomButton">More
+				&raquo;</a>
 		</div>
 	</div>
 	<div class="fixed-bottom bg-light">
